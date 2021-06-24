@@ -10,6 +10,7 @@ import (
 
 	"github.com/Exqrch/BTHT/model"
 	"github.com/Exqrch/BTHT/repositories"
+	service "github.com/Exqrch/BTHT/services"
 	"github.com/gorilla/mux"
 )
 
@@ -17,6 +18,9 @@ type allNews []model.News
 
 /*Repository -- No SQL, using hard coded data*/
 var newsRepository repositories.NewsRepositoryInterface = new(repositories.NewsRepositoryImpl)
+
+/*Service*/
+var newsService service.NewsServiceInterface = new(service.NewsServiceImpl)
 
 /*Service*/
 func homeLink(w http.ResponseWriter, r *http.Request) {
@@ -81,29 +85,17 @@ func deleteNews(w http.ResponseWriter, r *http.Request) {
 
 func filterNewsByStatus(w http.ResponseWriter, r *http.Request) {
 	status := mux.Vars(r)["s"]
+	var filteredNews = newsService.FilterByStatus(newsRepository.GetAllNews(), status)
 
-	var filteredNews = allNews{}
-	for _, singleNews := range newsRepository.GetAllNews() {
-		if singleNews.Status == status {
-			filteredNews = append(filteredNews, singleNews)
-		}
-	}
 	json.NewEncoder(w).Encode(filteredNews)
 }
 
 func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 	// Convert r.Body into a readable formart
 	tagQuery := r.URL.Query().Get("filter")
-
-	var filteredNews = allNews{}
-
 	tagFilter := strings.Split(tagQuery, ",")
 
-	for _, singleNews := range newsRepository.GetAllNews() {
-		if hasTag(singleNews, tagFilter) {
-			filteredNews = append(filteredNews, singleNews)
-		}
-	}
+	var filteredNews = newsService.FilterByTags(newsRepository.GetAllNews(), tagFilter)
 
 	if len(filteredNews) == 0 {
 		w.WriteHeader(http.StatusNoContent)
@@ -111,25 +103,6 @@ func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 
 	// Return the newly created news
 	json.NewEncoder(w).Encode(filteredNews)
-}
-
-/*Helper Function*/
-func hasTag(singleNews model.News, tagFilter []string) bool {
-	for _, tag := range tagFilter {
-		if !foundIn(strings.TrimSpace(tag), singleNews.Tag) {
-			return false
-		}
-	}
-	return true
-}
-
-func foundIn(s1 string, sArray []string) bool {
-	for _, s := range sArray {
-		if s == s1 {
-			return true
-		}
-	}
-	return false
 }
 
 /*Controller*/
