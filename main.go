@@ -11,15 +11,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-/*Model*/
-type News struct {
-	ID          string   `json:"ID"`
-	Title       string   `json:"Title"`
-	Description string   `json:"Description"`
-	Tag         []string `json:"Tag"`
-	Status      string   `json:"Status"`
-}
-
 type allNews []News
 
 /*Database*/
