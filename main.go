@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Exqrch/BTHT/model"
 	"github.com/gorilla/mux"
 )
 
-type allNews []News
+type allNews []model.News
 
 /*Database*/
 var news = allNews{
@@ -37,7 +38,7 @@ func homeLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func createNews(w http.ResponseWriter, r *http.Request) {
-	var newNews News
+	var newNews model.News
 	// Convert r.Body into a readable formart
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -79,7 +80,7 @@ func getAllNews(w http.ResponseWriter, r *http.Request) {
 func updateNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
 	newsID := mux.Vars(r)["id"]
-	var updatedNews News
+	var updatedNews model.News
 	// Convert r.Body into a readable formart
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -156,7 +157,7 @@ func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 }
 
 /*Helper Function*/
-func hasTag(singleNews News, tagFilter []string) bool {
+func hasTag(singleNews model.News, tagFilter []string) bool {
 	for _, tag := range tagFilter {
 		if !foundIn(strings.TrimSpace(tag), singleNews.Tag) {
 			return false
