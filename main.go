@@ -55,12 +55,12 @@ func createNews(w http.ResponseWriter, r *http.Request) {
 
 	json.Unmarshal(reqBody, &newNews)
 	newNews.Status = "Publish"
-	// Add the newly created event to the array of events
+	// Add the newly created news to the array of news
 	news = append(news, newNews)
 
 	// Return the 201 created status code
 	w.WriteHeader(http.StatusCreated)
-	// Return the newly created event
+	// Return the newly created news
 	json.NewEncoder(w).Encode(newNews)
 }
 
@@ -68,7 +68,7 @@ func getOneNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
 	newsID := mux.Vars(r)["id"]
 
-	// Get the details from an existing event
+	// Get the details from an existing news
 	// Use the blank identifier to avoid creating a value that will not be used
 	for _, singleNews := range news {
 		if singleNews.ID == newsID {
@@ -121,11 +121,11 @@ func deleteNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
 	newsID := mux.Vars(r)["id"]
 
-	// Get the details from an existing event
+	// Get the details from an existing news
 	for i, singleNews := range news {
 		if singleNews.ID == newsID {
 			news[i].Status = "Deleted"
-			fmt.Fprintf(w, "The event with ID %v has been marked for deletion", newsID)
+			fmt.Fprintf(w, "The news with ID %v has been marked for deletion", newsID)
 		}
 	}
 }
@@ -160,7 +160,7 @@ func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}
 
-	// Return the newly created event
+	// Return the newly created news
 	json.NewEncoder(w).Encode(filteredNews)
 }
 
