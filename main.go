@@ -91,9 +91,7 @@ func getAllNews(w http.ResponseWriter, r *http.Request) {
 	var publishedNews = allNews{}
 
 	for _, singleNews := range news {
-		if singleNews.Status == "Publish" {
-			publishedNews = append(publishedNews, singleNews)
-		}
+		publishedNews = append(publishedNews, singleNews)
 	}
 	json.NewEncoder(w).Encode(publishedNews)
 }
@@ -132,15 +130,27 @@ func updateNews(w http.ResponseWriter, r *http.Request) {
 
 func deleteNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
-	eventID := mux.Vars(r)["id"]
+	newsID := mux.Vars(r)["id"]
 
 	// Get the details from an existing event
 	for i, singleNews := range news {
-		if singleNews.ID == eventID {
+		if singleNews.ID == newsID {
 			news[i].Status = "Deleted"
-			fmt.Fprintf(w, "The event with ID %v has been marked for deletion", eventID)
+			fmt.Fprintf(w, "The event with ID %v has been marked for deletion", newsID)
 		}
 	}
+}
+
+func filterNewsByStatus(w http.ResponseWriter, r *http.Request) {
+	status := mux.Vars(r)["s"]
+
+	var filteredNews = allNews{}
+	for _, singleNews := range news {
+		if singleNews.Status == status {
+			filteredNews = append(filteredNews, singleNews)
+		}
+	}
+	json.NewEncoder(w).Encode(filteredNews)
 }
 
 /*Controller*/
@@ -152,5 +162,7 @@ func main() {
 	router.HandleFunc("/news/{id}", getOneNews).Methods("GET")
 	router.HandleFunc("/news/{id}", updateNews).Methods("PATCH")
 	router.HandleFunc("/news/{id}", deleteNews).Methods("DELETE")
+	router.HandleFunc("/news/filter/tag/{t}", filterNewsByTag).Methods("GET")
+	router.HandleFunc("/news/filter/status/{s}", filterNewsByStatus).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
