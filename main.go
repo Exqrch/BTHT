@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -17,10 +18,6 @@ type News struct {
 	Description string   `json:"Description"`
 	Tag         []string `json:"Tag"`
 	Status      string   `json:"Status"`
-}
-
-type Error struct {
-	Error string `json:"Error"`
 }
 
 type allNews []News
@@ -79,21 +76,13 @@ func getOneNews(w http.ResponseWriter, r *http.Request) {
 				json.NewEncoder(w).Encode(singleNews)
 			} else {
 				w.WriteHeader(http.StatusNoContent)
-				var customError Error
-				customError.Error = "The News you are searching is either not published or doesn't exist"
-				json.NewEncoder(w).Encode(customError)
 			}
 		}
 	}
 }
 
 func getAllNews(w http.ResponseWriter, r *http.Request) {
-	var publishedNews = allNews{}
-
-	for _, singleNews := range news {
-		publishedNews = append(publishedNews, singleNews)
-	}
-	json.NewEncoder(w).Encode(publishedNews)
+	json.NewEncoder(w).Encode(news)
 }
 
 func updateNews(w http.ResponseWriter, r *http.Request) {
@@ -154,21 +143,21 @@ func filterNewsByStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
-	var tagFilter []string
 	// Convert r.Body into a readable formart
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(w, "Pick at least one Tag!")
-	}
-
-	json.Unmarshal(reqBody, &tagFilter)
+	tagQuery := r.URL.Query().Get("filter")
 
 	var filteredNews = allNews{}
+
+	tagFilter := strings.Split(tagQuery, ",")
 
 	for _, singleNews := range news {
 		if hasTag(singleNews, tagFilter) {
 			filteredNews = append(filteredNews, singleNews)
 		}
+	}
+
+	if len(filteredNews) == 0 {
+		w.WriteHeader(http.StatusNoContent)
 	}
 
 	// Return the newly created event
@@ -178,7 +167,7 @@ func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 /*Helper Function*/
 func hasTag(singleNews News, tagFilter []string) bool {
 	for _, tag := range tagFilter {
-		if !foundIn(tag, singleNews.Tag) {
+		if !foundIn(strings.TrimSpace(tag), singleNews.Tag) {
 			return false
 		}
 	}
@@ -203,7 +192,7 @@ func main() {
 	router.HandleFunc("/news/{id}", getOneNews).Methods("GET")
 	router.HandleFunc("/news/{id}", updateNews).Methods("PATCH")
 	router.HandleFunc("/news/{id}", deleteNews).Methods("DELETE")
-	router.HandleFunc("/news/filter/tag", filterNewsByTag).Methods("POST")
-	router.HandleFunc("/news/filter/status/{s}", filterNewsByStatus).Methods("GET")
+	router.HandleFunc("/news", filterNewsByTag).Queries("filter", "{filter}").Methods("GET")
+	router.HandleFunc("/news/status/{s}", filterNewsByStatus).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
