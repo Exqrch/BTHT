@@ -9,28 +9,14 @@ import (
 	"strings"
 
 	"github.com/Exqrch/BTHT/model"
+	"github.com/Exqrch/BTHT/repositories"
 	"github.com/gorilla/mux"
 )
 
 type allNews []model.News
 
-/*Database*/
-var news = allNews{
-	{
-		ID:          "1",
-		Title:       "Silver Price Skyrocks After Reddit Attack",
-		Description: "Lorum Ipsum Potum",
-		Tag:         []string{"High Frequency", "Risky Trade"},
-		Status:      "Publish",
-	},
-	{
-		ID:          "2",
-		Title:       "Doge Coin Predicted To Skyrock Again Next Year",
-		Description: "Lorum Ipsum Potum",
-		Tag:         []string{"Long Trade", "Risky Trade"},
-		Status:      "Draft",
-	},
-}
+/*Repository -- No SQL, using hard coded data*/
+var newsRepository repositories.NewsRepositoryInterface = new(repositories.NewsRepositoryImpl)
 
 /*Service*/
 func homeLink(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +34,7 @@ func createNews(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(reqBody, &newNews)
 	newNews.Status = "Publish"
 	// Add the newly created news to the array of news
-	news = append(news, newNews)
+	newsRepository.Create(newNews)
 
 	// Return the 201 created status code
 	w.WriteHeader(http.StatusCreated)
@@ -59,22 +45,12 @@ func createNews(w http.ResponseWriter, r *http.Request) {
 func getOneNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
 	newsID := mux.Vars(r)["id"]
-
-	// Get the details from an existing news
-	// Use the blank identifier to avoid creating a value that will not be used
-	for _, singleNews := range news {
-		if singleNews.ID == newsID {
-			if singleNews.Status == "Publish" {
-				json.NewEncoder(w).Encode(singleNews)
-			} else {
-				w.WriteHeader(http.StatusNoContent)
-			}
-		}
-	}
+	news := newsRepository.GetById(newsID)
+	json.NewEncoder(w).Encode(news)
 }
 
 func getAllNews(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(news)
+	json.NewEncoder(w).Encode(newsRepository.GetAllNews())
 }
 
 func updateNews(w http.ResponseWriter, r *http.Request) {
@@ -89,44 +65,25 @@ func updateNews(w http.ResponseWriter, r *http.Request) {
 
 	json.Unmarshal(reqBody, &updatedNews)
 
-	for i, singleNews := range news {
-		if singleNews.ID == newsID {
-			if updatedNews.Title != "" {
-				singleNews.Title = updatedNews.Title
-			}
-			if updatedNews.Description != "" {
-				singleNews.Description = updatedNews.Description
-			}
-			if updatedNews.Tag != nil {
-				singleNews.Tag = updatedNews.Tag
-			}
-			if updatedNews.Status != "" {
-				singleNews.Status = updatedNews.Status
-			}
-			news[i] = singleNews
-			json.NewEncoder(w).Encode(singleNews)
-		}
-	}
+	var afterUpdate model.News = newsRepository.Update(newsID, updatedNews.Title, updatedNews.Description, updatedNews.Tag, updatedNews.Status)
+
+	json.NewEncoder(w).Encode(afterUpdate)
 }
 
 func deleteNews(w http.ResponseWriter, r *http.Request) {
 	// Get the ID from the url
+	var returnNews model.News
 	newsID := mux.Vars(r)["id"]
-
-	// Get the details from an existing news
-	for i, singleNews := range news {
-		if singleNews.ID == newsID {
-			news[i].Status = "Deleted"
-			fmt.Fprintf(w, "The news with ID %v has been marked for deletion", newsID)
-		}
-	}
+	returnNews = newsRepository.Delete(newsID)
+	json.NewEncoder(w).Encode(returnNews)
+	fmt.Fprintf(w, "The news with ID %v has been marked for deletion", newsID)
 }
 
 func filterNewsByStatus(w http.ResponseWriter, r *http.Request) {
 	status := mux.Vars(r)["s"]
 
 	var filteredNews = allNews{}
-	for _, singleNews := range news {
+	for _, singleNews := range newsRepository.GetAllNews() {
 		if singleNews.Status == status {
 			filteredNews = append(filteredNews, singleNews)
 		}
@@ -142,7 +99,7 @@ func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
 
 	tagFilter := strings.Split(tagQuery, ",")
 
-	for _, singleNews := range news {
+	for _, singleNews := range newsRepository.GetAllNews() {
 		if hasTag(singleNews, tagFilter) {
 			filteredNews = append(filteredNews, singleNews)
 		}
