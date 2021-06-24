@@ -153,6 +153,47 @@ func filterNewsByStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(filteredNews)
 }
 
+func filterNewsByTag(w http.ResponseWriter, r *http.Request) {
+	var tagFilter []string
+	// Convert r.Body into a readable formart
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Fprintf(w, "Pick at least one Tag!")
+	}
+
+	json.Unmarshal(reqBody, &tagFilter)
+
+	var filteredNews = allNews{}
+
+	for _, singleNews := range news {
+		if hasTag(singleNews, tagFilter) {
+			filteredNews = append(filteredNews, singleNews)
+		}
+	}
+
+	// Return the newly created event
+	json.NewEncoder(w).Encode(filteredNews)
+}
+
+/*Helper Function*/
+func hasTag(singleNews News, tagFilter []string) bool {
+	for _, tag := range tagFilter {
+		if !foundIn(tag, singleNews.Tag) {
+			return false
+		}
+	}
+	return true
+}
+
+func foundIn(s1 string, sArray []string) bool {
+	for _, s := range sArray {
+		if s == s1 {
+			return true
+		}
+	}
+	return false
+}
+
 /*Controller*/
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
@@ -162,7 +203,7 @@ func main() {
 	router.HandleFunc("/news/{id}", getOneNews).Methods("GET")
 	router.HandleFunc("/news/{id}", updateNews).Methods("PATCH")
 	router.HandleFunc("/news/{id}", deleteNews).Methods("DELETE")
-	router.HandleFunc("/news/filter/tag/{t}", filterNewsByTag).Methods("GET")
+	router.HandleFunc("/news/filter/tag", filterNewsByTag).Methods("POST")
 	router.HandleFunc("/news/filter/status/{s}", filterNewsByStatus).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
